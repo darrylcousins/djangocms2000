@@ -2,3 +2,4 @@
 fabfile.py
 *.pyc
 .bzr*
+djangocms2000.egg-info

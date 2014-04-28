@@ -9,7 +9,6 @@ from django.template.loader import get_template
 from django import template
 from django.utils.encoding import force_unicode
 from django.utils.html import escape, strip_tags
-from django.utils.text import truncate_words
 from django.db.models.signals import class_prepared, post_save, pre_save
 from django.utils.functional import curry
 from django.template import defaultfilters
@@ -19,6 +18,7 @@ import markdown2, gfm
 from fields import ConstrainedImageField
 import settings as cms_settings
 from decorators import cached
+from utils import truncate_words
 
 
 try:
@@ -44,28 +44,28 @@ class Block(models.Model):
     object_id = models.PositiveIntegerField()
     content_object = generic.GenericForeignKey('content_type', 'object_id')
 
-    
+
     #page = models.ForeignKey(Page)
     label = models.CharField(max_length=255)
     format = models.CharField(max_length=10, choices=BLOCK_TYPE_CHOICES, default='', blank=False)
     raw_content = models.TextField("Content", blank=True, )
     compiled_content = models.TextField(blank=True, editable=False)
-    
+
 
     history = AuditTrail(show_in_admin=False)
-    
+
     def label_display(self):
         return self.label.replace('-', ' ').replace('_', ' ').capitalize()
     label_display.short_description = 'label'
     label_display.admin_order_field = 'label'
-    
+
     def content_display(self):
         return truncate_words(strip_tags(self.compiled_content), 10)
-    
+
     def __unicode__(self):
         return self.label
         #return "'%s' on %s" % (self.label, self.page.url)
-    
+
     def save(self, *args, **kwargs):
         if self.format == 'markdown':
             if self.raw_content.strip():
@@ -74,8 +74,8 @@ class Block(models.Model):
                 self.compiled_content = ''
         else:
             self.compiled_content = self.raw_content
-        super(Block, self).save(*args, **kwargs)    
-    
+        super(Block, self).save(*args, **kwargs)
+
     def get_filtered_content(self, filters=None):
         content = self.compiled_content
         non_default_filters = []
@@ -85,7 +85,7 @@ class Block(models.Model):
                     content = getattr(defaultfilters, f)(content)
                 else:
                     non_default_filters.append(f)
-                
+
         for f, shortname, default in cms_settings.FILTERS:
             if (shortname in non_default_filters) or (not filters and default):
                 try:
@@ -97,12 +97,12 @@ class Block(models.Model):
                     fn = getattr(module, bits[-1])
                     content = fn(content, self)
         return content
-        
-    
+
+
     class Meta:
        ordering = ['id',]
        unique_together = ('content_type', 'object_id', 'label')
-    
+
 
 class Image(models.Model):
     content_type = models.ForeignKey(ContentType)
@@ -113,16 +113,16 @@ class Image(models.Model):
 
     def label_display(self):
         return self.label.replace('-', ' ').replace('_', ' ').title()
-    
-    
+
+
     #page = models.ForeignKey(Page)
     label = models.CharField(max_length=255)
     file = ConstrainedImageField(upload_to=cms_settings.UPLOAD_PATH, blank=True, max_dimensions=cms_settings.MAX_IMAGE_DIMENSIONS)
     description = models.CharField(max_length=255, blank=True)
     def __unicode__(self):
         return self.label
- 
- 
+
+
     # these can be expensive for large images so cache 'em
     def dimensions(self):
         key = '-'.join((cms_settings.CACHE_PREFIX, 'image_dimensions', self.file.url))
@@ -133,10 +133,10 @@ class Image(models.Model):
                 'height': self.file.height,
             }
         return _work()
-    
+
     class Meta:
        unique_together = ('content_type', 'object_id', 'label')
-    
+
 
 
 TEMPLATE_DIR = settings.TEMPLATE_DIRS[0]
@@ -150,7 +150,7 @@ def get_templates_from_dir(dir, exclude=None):
             filename = path.replace(dir, '').strip('/')
             if TEMPLATE_REGEX.search(path) and (not exclude or not exclude.search(filename)):
                 templates.append((path, filename))
-    
+
     return templates
 
 def template_choices():
@@ -163,7 +163,7 @@ def template_choices():
 #        ('Static Templates', get_templates_from_dir("cms", CMS_EXCLUDE_REGEX)),
 #        ('Other Templates', get_templates_from_dir("", OTHER_EXCLUDE_REGEX)),
 #    )
-    
+
 
 def get_child_pages(parent_url, qs=None):
     return (qs or Page.live).filter(url__iregex=r'^' + parent_url + '[^/]+/$')
@@ -176,7 +176,7 @@ class _CMSAbstractBaseModel(models.Model):
 
     blocks = generic.GenericRelation(Block)
     images = generic.GenericRelation(Image)
-        
+
     def get_title(self):
         try:
             return strip_tags(self.blocks.get(label="title").compiled_content)
@@ -204,16 +204,16 @@ class Page(_CMSAbstractBaseModel):
     site = models.ForeignKey(Site, default=1)
     creation_date = models.DateTimeField(auto_now_add=True)
     is_live = models.BooleanField(default=True, help_text="If this is not checked, the page will only be visible to logged-in users.")
-    
+
     objects = PageManager()
     live = LivePageManager()
-    
+
     class Meta:
         ordering = ('url',)
         unique_together = ('url', 'site')
-    
+
     history = AuditTrail(show_in_admin=False)
-    
+
     def get_children(self, qs=None):
         return get_child_pages(self.url, qs)
 
@@ -239,16 +239,16 @@ class MenuItem(models.Model):
     text = models.CharField(max_length=255, blank=True, default="", help_text="If left blank, will use page title")
     title = models.CharField(max_length=255, blank=True, default="")
     sort = models.IntegerField(blank=True, default=0)
-    
+
     class Meta:
         ordering = ('sort','id',)
-    
+
     def get_text(self):
         return self.text or self.page.page_title()
-    
+
     def __unicode__(self):
         return self.get_text()
-    
+
 
 
 
@@ -260,19 +260,19 @@ Abstract model for other apps that want to have related Blocks and Images
 """
 class CMSBaseModel(_CMSAbstractBaseModel):
 
-    
+
     BLOCK_LABELS = [] # list of tuples of the form ('name', 'format',), but will fall back if it's just a list of strings
     IMAGE_LABELS = [] # list of strings
-    
-    
+
+
     def __unicode__(self):
         return self.get_title()
-    
+
     def _block_LABEL(self, label):
         return self.blocks.get(label=label).compiled_content
-    
-    
-    
+
+
+
     class Meta:
         abstract = True
 
@@ -291,7 +291,7 @@ def add_blocks(sender, **kwargs):
             if (not block.format or created) and label_tuple[1]:
                 block.format = label_tuple[1]
                 block.save()
-            
+
         for label in kwargs['instance'].IMAGE_LABELS:
             Image.objects.get_or_create(
                 label=label,
@@ -302,7 +302,7 @@ post_save.connect(add_blocks)
 
 
 """
-Possible todo: If the base model has a field named _block_LABEL, 
+Possible todo: If the base model has a field named _block_LABEL,
 save the block's value there as well via post_save?
 """
 
