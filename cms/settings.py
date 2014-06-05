@@ -20,7 +20,6 @@ HIGHLIGHT_START_COLOR = getattr(settings, 'CMS_HIGHLIGHT_START_COLOR', "#ff0")
 HIGHLIGHT_END_COLOR = getattr(settings, 'CMS_HIGHLIGHT_END_COLOR', "#fff")
 
 
-
 ADMIN_JS = getattr(settings, 'CMS_ADMIN_JS', (
     STATIC_URL + 'lib/jquery-1.4.2.min.js',
     STATIC_URL + 'tiny_mce/tiny_mce.js',

@@ -9,10 +9,6 @@ import settings as cms_settings
 from forms import PageForm, ReadonlyInput
 from models import Page, Block, Image, MenuItem
 
-
-
-
-
 class BlockForm(forms.ModelForm):
     class Meta:
         model = Block
