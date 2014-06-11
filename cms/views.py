@@ -9,6 +9,7 @@ from django.template import RequestContext
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth.views import login as auth_login
+from django.contrib.sites.models import get_current_site
 
 try:
     from django.views.decorators.csrf import csrf_protect
@@ -29,12 +30,12 @@ def logout(request):
         return HttpResponseRedirect(request.GET['from'] or '/')
     else:
         return HttpResponseRedirect('/')
-        
+
 
 def login(request, *args, **kwargs):
     kwargs['template_name'] = 'cms/cms/login.html'
     return auth_login(request, *args, **kwargs)
-        
+
 
     #(r'^login/$', '', {'template_name': 'cms/cms/login.html',}),
 
@@ -50,9 +51,9 @@ def savepage(request, page_pk=None):
             page = get_object_or_404(Page, pk=page_pk)
         else:
             page = None
-        
+
         form = PublicPageForm(request.POST, instance=page, prefix=request.POST.get('prefix', None))
-            
+
         if form.is_valid():
             saved_page = form.save()
             return HttpResponse(simplejson.dumps({
@@ -66,7 +67,7 @@ def savepage(request, page_pk=None):
                 'errors': form.errors,
             }), mimetype='application/json')
 
-    
+
 
 
 
@@ -76,11 +77,11 @@ def saveblock(request):
         prefix = '%s-' % request.POST['prefix']
     else:
         prefix = ''
-        
+
     block = Block.objects.get(
         pk=request.POST['%sblock_id' % (prefix)]
     )
-    
+
     block.raw_content = request.POST['%sraw_content' % (prefix)]
     block.format = request.POST['%sformat' % (prefix)]
     block.save()
@@ -90,16 +91,16 @@ def saveblock(request):
         'raw_content': block.raw_content,
     }), mimetype='application/json')
 
-    
 
-    
+
+
 @permission_required("cms.change_page")
 def saveimage(request):
     #print request.POST
     image = Image.objects.get(
         pk=request.POST['image_id']
     )
-    
+
     if 'delete' in request.POST:
         if image.file:
             image.file.delete()
@@ -110,12 +111,12 @@ def saveimage(request):
                 image.file.delete()
             image.file.save(request.FILES['file'].name, request.FILES['file'])
         image.description = request.POST['description']
-    
+
     image.save()
 
     return HttpResponseRedirect(request.POST['redirect_to'])
-    
-    
+
+
 
 @csrf_protect
 def render_page(request, url):
@@ -124,11 +125,11 @@ def render_page(request, url):
         qs = Page.objects
     else:
         qs = Page.live
-    
+
     # don't try to render pages with no template (e.g. those who hold content for a
     # url resolved elsewhere in the project)
     qs = qs.exclude(template='')
-    
+
     page = get_object_or_404(qs, url=url, site=settings.SITE_ID)
     return render_to_response(
         page.template.replace("/%s/" % settings.TEMPLATE_DIRS[0], "", 1),
@@ -137,9 +138,9 @@ def render_page(request, url):
         },
         context_instance=RequestContext(request)
     )
-    
-    
-    
+
+
+
 # used to initialise django admin tinymce
 def page_admin_init(request):
     response = render_to_response(
@@ -154,10 +155,11 @@ def page_admin_init(request):
 
 # populate the tinymce link list popup
 def linklist(request):
+    qs = Page.objects.all()
     response = render_to_response(
         'cms/cms/linklist.js',
         {
-            'page_list': Page.objects.all(),
+            'page_list': qs,
         },
         context_instance=RequestContext(request)
     )

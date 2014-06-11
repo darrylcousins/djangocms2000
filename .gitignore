@@ -1,5 +1,6 @@
 .DS_Store
 fabfile.py
 *.pyc
+*.swp
 .bzr*
 djangocms2000.egg-info

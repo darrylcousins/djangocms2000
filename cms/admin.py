@@ -18,11 +18,11 @@ class BlockForm(forms.ModelForm):
         # change the raw_content widget based on the format of the block - a bit hacky but best we can do
         if 'instance' in kwargs:
             self.fields['raw_content'].widget.attrs['class'] = "%s cms cms-%s" % (self.fields['raw_content'].widget.attrs['class'], kwargs['instance'].format)
-        
+
         required_cb = cms_settings.BLOCK_REQUIRED_CALLBACK
         if callable(required_cb) and 'instance' in kwargs:
             self.fields['raw_content'].required = required_cb(kwargs['instance'])
-        
+
 
 class BlockFormSet(generic.generic_inlineformset_factory(Block)):
     def __init__(self, *args, **kwargs):
@@ -49,7 +49,7 @@ class ImageForm(forms.ModelForm):
         required_cb = cms_settings.IMAGE_REQUIRED_CALLBACK
         if callable(required_cb) and 'instance' in kwargs:
             self.fields['file'].required = required_cb(kwargs['instance'])
-        
+
 
 
 class ImageInline(generic.GenericTabularInline):
@@ -67,20 +67,20 @@ class CMSBaseAdmin(admin.ModelAdmin):
         css = cms_settings.ADMIN_CSS
     class Meta:
         abstract=True
-        
+
     def save_model(self, request, obj, form, change):
         '''Save model, then add blocks/images via dummy rendering.
-           
-           NOTE: This will naively attempt to render the page using the 
+
+           NOTE: This will naively attempt to render the page using the
            *current*  django Site object, so if you're in the admin of one site
            editing pages on another, the dummy render will silently fail.
-        
+
         '''
         returnval = super(CMSBaseAdmin, self).save_model(request, obj, form, change)
-        
+
         if getattr(obj, 'get_absolute_url', None):
             c = Client()
-            response = c.get(unicode(obj.get_absolute_url()), 
+            response = c.get(unicode(obj.get_absolute_url()),
                              {'cms_dummy_render': cms_settings.SECRET_KEY},
                              HTTP_COOKIE='')
         return returnval
@@ -90,24 +90,25 @@ class PageAdmin(CMSBaseAdmin):
     list_display=['page_title', 'url', 'template', 'is_live', 'creation_date', 'view_on_site',]
     list_display_links=['page_title', 'url', ]
 
-    list_filter=['site', 'template', 'is_live', 'creation_date',]
-    
+    list_filter=['template', 'is_live', 'creation_date',]
+
     def view_on_site(self, instance):
         return '<a href="%s" target="_blank">view page</a>' % (instance.get_absolute_url())
     view_on_site.allow_tags = True
     view_on_site.short_description = ' '
-    
-    
+
+
     search_fields = ['url', 'blocks__compiled_content', 'template',]
     form = PageForm
     exclude = []
-    
-    
+
+
 if cms_settings.USE_SITES_FRAMEWORK:
     PageAdmin.list_display.append('site')
+    PageAdmin.list_filter.append('site')
 else:
     PageAdmin.exclude.append('site')
-        
+
 admin.site.register(Page, PageAdmin)
 
 
