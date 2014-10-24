@@ -10,14 +10,17 @@ from forms import PageForm, ReadonlyInput
 from models import Page, Block, Image, MenuItem
 
 class BlockForm(forms.ModelForm):
+
     class Meta:
         model = Block
+
     def __init__(self, *args, **kwargs):
         super(BlockForm, self).__init__(*args, **kwargs)
 
         # change the raw_content widget based on the format of the block - a bit hacky but best we can do
         if 'instance' in kwargs:
-            self.fields['raw_content'].widget.attrs['class'] = "%s cms cms-%s" % (self.fields['raw_content'].widget.attrs['class'], kwargs['instance'].format)
+            self.fields['raw_content'].widget.attrs['class'] = "%s cms cms-%s" % (
+                    self.fields['raw_content'].widget.attrs['class'], kwargs['instance'].format)
 
         required_cb = cms_settings.BLOCK_REQUIRED_CALLBACK
         if callable(required_cb) and 'instance' in kwargs:
@@ -38,11 +41,12 @@ class BlockInline(generic.GenericTabularInline):
     form = BlockForm
 
 
-
-
 class ImageForm(forms.ModelForm):
+
     class Meta:
         model = Image
+        fields = ('label', 'file', 'description')
+
     def __init__(self, *args, **kwargs):
         super(ImageForm, self).__init__(*args, **kwargs)
 
@@ -62,9 +66,11 @@ class CMSBaseAdmin(admin.ModelAdmin):
     inlines=[BlockInline,ImageInline,]
     list_display=['get_title',]
     save_on_top = True
+
     class Media:
         js = cms_settings.ADMIN_JS
         css = cms_settings.ADMIN_CSS
+
     class Meta:
         abstract=True
 
@@ -114,11 +120,6 @@ admin.site.register(Page, PageAdmin)
 
 admin.site.register(MenuItem, list_display=['__unicode__','page','sort'])
 
-
-
-
-
-
 # Block/Image admin - restrict to just "site" blocks to avoid confusing the user
 # Note - end users should only be given change permissions on these
 
@@ -126,7 +127,7 @@ class BlockFormSite(BlockForm):
     label = forms.CharField(widget=ReadonlyInput)
 
 class BlockAdmin(admin.ModelAdmin):
-    def queryset(self, request):
+    def get_queryset(self, request):
         if False and request.user.is_superuser:
             return Block.objects.all()
         else:
@@ -148,12 +149,13 @@ admin.site.register(Block, BlockAdmin)
 
 
 class ImageFormSite(forms.ModelForm):
+    label = forms.CharField(widget=ReadonlyInput)
     class Meta:
         model = Image
-    label = forms.CharField(widget=ReadonlyInput)
+        fields = ('label', 'file', 'description')
 
 class ImageAdmin(admin.ModelAdmin):
-    def queryset(self, request):
+    def get_queryset(self, request):
         if False and request.user.is_superuser:
             return Image.objects.all()
         else:

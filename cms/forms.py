@@ -72,6 +72,7 @@ class PageForm(forms.ModelForm):
         
     class Meta:
         model = Page
+        fields = ('url', 'template', 'site', 'is_live')
     
     def clean(self):
         data = self.cleaned_data

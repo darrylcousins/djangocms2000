@@ -119,6 +119,7 @@ class Image(models.Model):
     label = models.CharField(max_length=255)
     file = ConstrainedImageField(upload_to=cms_settings.UPLOAD_PATH, blank=True, max_dimensions=cms_settings.MAX_IMAGE_DIMENSIONS)
     description = models.CharField(max_length=255, blank=True)
+
     def __unicode__(self):
         return self.label
 
@@ -193,8 +194,8 @@ class PageManager(models.Manager):
 
 
 class LivePageManager(models.Manager):
-    def get_query_set(self):
-        return super(LivePageManager, self).get_query_set().filter(is_live=True)
+    def get_queryset(self):
+        return super(LivePageManager, self).get_queryset().filter(is_live=True)
 
 
 

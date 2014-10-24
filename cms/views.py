@@ -1,7 +1,7 @@
 import re, os
+import json as simplejson
 
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseNotAllowed, HttpResponseForbidden
-from django.utils import simplejson
 from django.contrib.auth.decorators import permission_required
 from django.contrib.auth import logout as logout_request
 from django.shortcuts import render_to_response, get_object_or_404
